@@ -73,7 +73,7 @@ def process_df(future, curr, step):
     if len(cache) == 0:
         raise RuntimeError("Empty response!")
     else:
-        json.dump(cache, open("./data/scraped_{0}_{1}.json".format(curr, curr + step), "w"))
+        json.dump(cache, open("./data/scraped/scraped_{0}_{1}.json".format(curr, curr + step), "w"))
 
 
 df = pd.read_csv("./data/ratings.csv")

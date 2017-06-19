@@ -1,4 +1,4 @@
-"""Scrape saved "top rated games" page from steamdb.info for app data"""
+"""Convert saved "top rated games" page from steamdb.info to csv (Do not directly scrape the page)"""
 
 from bs4 import BeautifulSoup
 import pandas as pd
