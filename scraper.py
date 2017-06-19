@@ -1,19 +1,20 @@
+"""Scrape Steam store page for highlight image urls and genre/tags"""
+
 from bs4 import BeautifulSoup
 import asyncio
-import aiohttp
 from aiohttp import ClientSession
 import numpy as np
 import pandas as pd
-import os
 from functools import partial
 from aiohttp import ClientConnectorError
 import json
 import re
 from bs4 import NavigableString
 
-cookies = {'birthtime': '283993201', 'mature_content': '1'}
+cookies = {'birthtime': '283993201', 'mature_content': '1'}  # bypass age check
 
-async def get_html(app_id, session):
+async def get_html_data(app_id, session):
+    """Access the Steam store page for an app and retrieve image url and genre data"""
     url = "http://store.steampowered.com/app/{0}".format(app_id)
     attempts = 0
     while attempts < 3:
@@ -54,10 +55,11 @@ async def get_html(app_id, session):
         return app_id, None
 
 async def gather_results(curr, step, app_ids):
+    """Launch scrape tasks and collect results"""
     tasks = []
     async with ClientSession(cookies=cookies) as session:
         for app_id in app_ids[curr : curr + step]:
-            task = asyncio.ensure_future(get_html(app_id, session))
+            task = asyncio.ensure_future(get_html_data(app_id, session))
             tasks.append(task)
 
         responses = await asyncio.gather(*tasks)
@@ -66,6 +68,7 @@ async def gather_results(curr, step, app_ids):
 
 
 def process_df(future, curr, step):
+    """Save scrape results in json files"""
     cache = {k: v for k, v in future.result()}
     if len(cache) == 0:
         raise RuntimeError("Empty response!")

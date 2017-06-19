@@ -1,9 +1,7 @@
+"""Scrape saved "top rated games" page from steamdb.info for app data"""
+
 from bs4 import BeautifulSoup
-import numpy as np
 import pandas as pd
-import json
-import re
-from bs4 import NavigableString
 
 soup = BeautifulSoup(open("./data/ratings.html", "r"), 'html.parser')
 apps = soup.select('tr.app')
