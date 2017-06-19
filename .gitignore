@@ -98,3 +98,7 @@ ENV/
 data/
 *.sql.gz
 
+
+# .idea
+.idea/
+
