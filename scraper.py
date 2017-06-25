@@ -20,7 +20,10 @@ async def get_html_data(app_id, session):
     while attempts < 3:
         try:
             res = await session.get(url)
-            html = await res.text()
+            try:
+                html = await res.text()
+            except UnicodeDecodeError:
+                return app_id, None
             soup = BeautifulSoup(html, 'html.parser')
             highlights = soup.select("div.highlight_strip_screenshot img")
             imgs_small = [img['src'] for img in highlights]
@@ -58,7 +61,7 @@ async def gather_results(curr, step, app_ids):
     """Launch scrape tasks and collect results"""
     tasks = []
     async with ClientSession(cookies=cookies) as session:
-        for app_id in app_ids[curr : curr + step]:
+        for app_id in app_ids[curr: curr + step]:
             task = asyncio.ensure_future(get_html_data(app_id, session))
             tasks.append(task)
 
@@ -77,10 +80,10 @@ def process_df(future, curr, step):
 
 
 df = pd.read_csv("./data/ratings.csv")
-app_ids = df.loc[:1000, "app_id"].astype(str)
+app_ids = df.loc[:, "app_id"].astype(str)
 
-start = 0
-end = 1000
+start = 3500
+end = 5000
 step = 100
 
 for curr in range(start, end, step):
