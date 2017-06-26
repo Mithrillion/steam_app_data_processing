@@ -52,9 +52,9 @@ def process_done(future):
         print("processed {0} images".format(len(cache)))
 
 
-start = 3500
+start = 5000
 step = 100
-stop = 5000
+stop = 10000
 
 for curr in range(start, stop, step):
     data = json.load(open("./data/scraped/scraped_{0}_{1}.json".format(curr, curr + step), "r"))

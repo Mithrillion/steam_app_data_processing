@@ -1,3 +1,5 @@
+# obsolete: using torchvision.transform instead
+
 import os
 from PIL import Image
 import shutil

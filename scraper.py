@@ -82,8 +82,8 @@ def process_df(future, curr, step):
 df = pd.read_csv("./data/ratings.csv")
 app_ids = df.loc[:, "app_id"].astype(str)
 
-start = 3500
-end = 5000
+start = 5000
+end = 10000
 step = 100
 
 for curr in range(start, end, step):

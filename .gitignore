@@ -97,8 +97,8 @@ ENV/
 # data
 data/
 *.sql.gz
+*.pth.tar
 
 
 # .idea
 .idea/
-
