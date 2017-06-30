@@ -59,12 +59,20 @@ class MultiImageAlexNet(AlexNet):
             # nn.ReLU(inplace=True),
             nn.Linear(1024, num_classes)
         )
-        self.gru = nn.GRU(4096, 1024, batch_first=True)
+        self.gru = nn.GRU(4096, 1024, batch_first=True, num_layers=2)
+        self.is_cuda = False
+
+    def cuda(self, device_id=None):
+        super(MultiImageAlexNet, self).cuda(device_id)
+        self.is_cuda = True
 
     def forward(self, imgs):
         feature_outputs = []
         for x in imgs:
-            x = Variable(x.cuda(async=True))
+            if self.is_cuda:
+                x = Variable(x.cuda(async=True))
+            else:
+                x = Variable(x)
             if x.size(1) == 1:  # single channel image?
                 x = x.expand(x.size(0), 3, x.size(2), x.size(3))
             elif x.size(1) == 4:  # RGBA?
@@ -79,8 +87,32 @@ class MultiImageAlexNet(AlexNet):
         y = torch.stack(feature_outputs, 2).transpose(1, 2)
         _, y = self.gru(y)
         # y, _ = torch.max(y, 1)
-        y = y.squeeze(1)
+        y = y[-1, :, :].squeeze(1)
         y = self.classifier(y)
+        return y
+
+    def encode(self, imgs):
+        feature_outputs = []
+        for x in imgs:
+            if self.is_cuda:
+                x = Variable(x.cuda(async=True))
+            else:
+                x = Variable(x)
+            if x.size(1) == 1:  # single channel image?
+                x = x.expand(x.size(0), 3, x.size(2), x.size(3))
+            elif x.size(1) == 4:  # RGBA?
+                x = x[:, :3, :, :]
+            try:
+                x = self.features(x)
+                x = x.view(x.size(0), 256 * 5 * 10)
+                x = self.global_features(x)
+            except RuntimeError:
+                raise ValueError("Dimensionality Error!")
+            feature_outputs.append(x.clone())
+        y = torch.stack(feature_outputs, 2).transpose(1, 2)
+        _, y = self.gru(y)
+        # y, _ = torch.max(y, 1)
+        y = y[-1, :, :].squeeze(1)
         return y
 
 

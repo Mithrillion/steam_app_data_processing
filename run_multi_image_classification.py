@@ -17,21 +17,25 @@ grad_norm_clip = 10
 end = 10000
 image_dir = "./data/images"
 json_dir = "./data/scraped"
-class_map_file = "./data/class_maps/genres_map.pkl"
+class_map_file = "./data/class_maps/tags_map.pkl"
 
 
-def save_checkpoint(state, is_best, filename='checkpoint.packed.pth.tar'):
+def save_checkpoint(state, is_best, filename='checkpoint.saved.pth.tar'):
     torch.save(state, filename)
     if is_best:
-        shutil.copyfile(filename, 'model_best.packed.pth.tar')
+        shutil.copyfile(filename, 'model_best.saved.pth.tar')
 
 dat = AppImageDataset(image_dir, json_dir, class_map_file, end=end)
 n_exmaples = len(dat)
 
-train_indices = np.random.choice(range(n_exmaples), int(n_exmaples * 0.8), replace=False)
-rest = set(range(n_exmaples)).difference(set(train_indices))
-val_indices = np.random.choice(list(rest), int(n_exmaples * 0.05), replace=False)
-test_indices = list(rest.difference(set(val_indices)))
+# np.random.seed(7777)  # ensure in all subsequent runs, the sets are fixed
+# train_indices = np.random.choice(range(n_exmaples), int(n_exmaples * 0.8), replace=False)
+# rest = set(range(n_exmaples)).difference(set(train_indices))
+# val_indices = np.random.choice(list(rest), int(n_exmaples * 0.05), replace=False)
+# test_indices = list(rest.difference(set(val_indices)))
+# pickle.dump((train_indices, val_indices, test_indices), open("./data/set_indices.pkl", "wb"))
+
+train_indices, val_indices, test_indices = pickle.load(open("./data/set_indices.pkl", "rb"))
 
 train_sampler = sampler.SubsetRandomSampler(train_indices)
 val_sampler = sampler.SubsetRandomSampler(val_indices)
@@ -46,14 +50,13 @@ n_classes = len(class_map)
 
 net = MultiImageAlexNet(num_classes=n_classes)
 
-# initialise
-for p in net.parameters():
-    p.data.normal_(0, 1e-2)
+# # initialise
+# for p in net.parameters():
+#     p.data.normal_(0, 1e-2)
 # for p in net.gru.parameters():
 #     p.data.normal_(0, 1e-1)
-
-# load pretrained features
-
+#
+# # load pretrained features
 # model_urls = {
 #     'alexnet': 'https://download.pytorch.org/models/alexnet-owt-4df8aa71.pth',
 # }
@@ -62,12 +65,16 @@ for p in net.parameters():
 # net.features.load_state_dict(ref_net.features.state_dict())
 # del ref_net
 
+# load previous learning states
+net.load_state_dict(torch.load("checkpoint.saved.pth.tar")['state_dict'])
+
+
 net.cuda()
 
 # test training
-opt = optim.Adam(net.parameters(), 1e-3)
-epochs = 5
-batch = 32
+opt = optim.Adam(net.parameters(), 1e-4)
+epochs = 20
+batch = 16
 n_log_batches = 4
 s = 0
 validation_interval = 1000

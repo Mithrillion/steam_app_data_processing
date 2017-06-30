@@ -29,7 +29,7 @@ step = 100
 end = 200
 image_dir = "./data/images"
 json_dir = "./data/scraped"
-class_map_file = "./data/class_maps/genres_map.pkl"
+class_map_file = "./data/class_maps/tags_map.pkl"
 
 
 # temporarily copying the updated class definition from lastest pytorch/vision repo
@@ -120,12 +120,60 @@ class AppImageDataset(data.Dataset):
             except OSError:
                 continue
         # get image tags / genres
-        if app_info['genre'] is not None:
-            tags = app_info['genre']
+        if app_info['tags'] is not None:
+            tags = app_info['tags']
         tags = [self.rev_map[x] for x in tags]  # map tag names to tag ids
         tags_vec = np.zeros(self.class_count, dtype=np.float)
         tags_vec[[tags]] = 1  # convert to indicator vector
         return img_tensors, torch.from_numpy(tags_vec).type(torch.FloatTensor)
+
+    def __len__(self):
+        return len(self.apps)
+
+
+# full set
+class FullAppImageDataset(data.Dataset):
+    """Define the image-tags(or genres) dataset"""
+    def __init__(self, image_dir, json_dir, start=0, step=100, end=500):
+        super(FullAppImageDataset, self).__init__()
+        self.image_dir = image_dir
+        self.json_dir = json_dir
+        self.start = start
+        self.step = step
+        self.end = end
+
+        # define preprocessing steps: first downscale the images, then convert to tensor
+        self.preprocess = transforms.Compose([
+            Scale((356, 200)),
+            transforms.ToTensor()
+        ])
+
+        # read the complete list of apps for iterator indexing
+        self.apps = []
+        for curr in range(start, end, step):
+            data = json.load(open(os.path.join(json_dir, "scraped_{0}_{1}.json".format(curr, curr + step)), "r"))
+            for app_id, app_info in data.items():
+                if app_info is not None and app_info['imgs'] is not None:
+                    curr_img_dir = os.path.join(image_dir, app_id)
+                    if os.path.exists(curr_img_dir):
+                        curr_img_names = os.listdir(curr_img_dir)
+                        if len(curr_img_names) > 0:  # if at least one image exists for this app
+                            self.apps.append((app_id, app_info))
+
+    def __getitem__(self, index):
+        app_id, app_info = self.apps[index]
+        img_tensors = []  # list to hold all image tensors of selected app
+        tags = []  # list to hold names of all tags of selected app
+        curr_img_dir = os.path.join(self.image_dir, app_id)
+        curr_img_names = os.listdir(curr_img_dir)
+        for img_name in curr_img_names:
+            try:
+                img = Image.open(os.path.join(curr_img_dir, img_name))
+                tensor = self.preprocess(img)  # apply preprocessing
+                img_tensors.append(tensor)
+            except OSError:
+                continue
+        return app_id, img_tensors
 
     def __len__(self):
         return len(self.apps)
